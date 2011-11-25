@@ -220,7 +220,8 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 
 		// read element tag
 		tag = BitBufferReadSmall( bits, 3 );
-        //printf("Tag: %d\n", tag);
+        printf("Tag: %d\n", tag);
+        
 		switch ( tag )
 		{
 			case ID_SCE:
@@ -374,13 +375,20 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 
 			case ID_CPE:
 			{
+			    printf("Channel Index: %d\n", channelIndex);
+                
 				// if decoding this pair would take us over the max channels limit, bail
-				if ( (channelIndex + 2) > numChannels )
+				if ( (channelIndex + 2) > numChannels ) {
+                    printf("No more channels\n");
+				
 					goto NoMoreChannels;
+				}
 
 				// stereo channel pair
 				elementInstanceTag = BitBufferReadSmall( bits, 4 );
 				mActiveElements |= (1u << elementInstanceTag);
+
+                printf("Element Instance Tag: %d\n", elementInstanceTag);
 
 				// read the 12 unused header bits
 				unusedHeader = (uint16_t) BitBufferRead( bits, 12 );
@@ -389,16 +397,24 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 				// read the 1-bit "partial frame" flag, 2-bit "shift-off" flag & 1-bit "escape" flag
 				headerByte = (uint8_t) BitBufferRead( bits, 4 );
 				
+				printf("Header Byte: %d\n", headerByte);
+                
 				partialFrame = headerByte >> 3;
 				
 				bytesShifted = (headerByte >> 1) & 0x3u;
 				RequireAction( bytesShifted != 3, status = kALAC_ParamError; goto Exit; );
 
+				printf("Partial Frame, Bytes Shifted: %d, %d\n", partialFrame, bytesShifted);
+
 				shift = bytesShifted * 8;
 
 				escapeFlag = headerByte & 0x1;
 
+				printf("Escape Flag: %d\n", escapeFlag);
+
 				chanBits = mConfig.bitDepth - (bytesShifted * 8) + 1;
+				
+				printf("Channel Bits: %d\n", chanBits);
 				
 				// check for partial frame length to override requested numSamples
 				if ( partialFrame != 0 )
@@ -407,19 +423,28 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 					numSamples |= BitBufferRead( bits, 16 );
 				}
 
+				printf("Samples: %d\n", numSamples);
+
 				if ( escapeFlag == 0 )
 				{
 					// compressed frame, read rest of parameters
 					mixBits		= (uint8_t) BitBufferRead( bits, 8 );
 					mixRes		= (int8_t) BitBufferRead( bits, 8 );
 
+    				printf("Mix Bits, Mix Res: %d, %d\n", mixBits, mixRes);
+
 					headerByte	= (uint8_t) BitBufferRead( bits, 8 );
 					modeU		= headerByte >> 4;
 					denShiftU	= headerByte & 0xfu;
 					
+					printf("Mode U, DenShift U: %d, %d\n", modeU, denShiftU);
+    				
 					headerByte	= (uint8_t) BitBufferRead( bits, 8 );
 					pbFactorU	= headerByte >> 5;
 					numU		= headerByte & 0x1fu;
+					
+					printf("pbFactor U, Num U: %d, %d\n", pbFactorU, numU);
+					
 					for ( i = 0; i < numU; i++ )
 						coefsU[i] = (int16_t) BitBufferRead( bits, 16 );
 
@@ -427,11 +452,18 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 					modeV		= headerByte >> 4;
 					denShiftV	= headerByte & 0xfu;
 					
+					printf("Mode V, DenShift V: %d, %d\n", modeV, denShiftV);
+					
 					headerByte	= (uint8_t) BitBufferRead( bits, 8 );
 					pbFactorV	= headerByte >> 5;
 					numV		= headerByte & 0x1fu;
+					
+					printf("pbFactor V, Num V: %d, %d\n", pbFactorV, numV);
+					
 					for ( i = 0; i < numV; i++ )
 						coefsV[i] = (int16_t) BitBufferRead( bits, 16 );
+
+					printf("Coefs U, V: %d, %d, %d... %d, %d, %d...\n", coefsU[0], coefsU[1], coefsU[2], coefsV[0], coefsV[1], coefsV[2]);
 
 					// if shift active, skip the interleaved shifted values but remember where they start
 					if ( bytesShifted != 0 )
@@ -439,6 +471,8 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 						shiftBits = *bits;
 						BitBufferAdvance( bits, (bytesShifted * 8) * 2 * numSamples );
 					}
+
+					printf("Bytes Shifted: %d\n", bytesShifted);
 
 					// decompress and run predictor for "left" channel
 					set_ag_params( &agParams, mConfig.mb, (pb * pbFactorU) / 4, mConfig.kb, numSamples, numSamples, mConfig.maxRun );
@@ -507,12 +541,16 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 							mMixBufferV[i] = val | BitBufferRead( bits, (uint8_t)extraBits );
 						}
 					}
+					
+					printf("Mix Buffer U, V: %d, %d, %d... %d, %d, %d...\n", mMixBufferU[0], mMixBufferU[1], mMixBufferU[2], mMixBufferV[0], mMixBufferV[1], mMixBufferV[2]);
 
 					bits1 = chanBits * numSamples;
 					bits2 = chanBits * numSamples;
 					mixBits = mixRes = 0;
 					bytesShifted = 0;
 				}
+
+				printf("Bytes Shifted: %d\n", bytesShifted);
 
 				// now read the shifted values into the shift buffer
 				if ( bytesShifted != 0 )
@@ -533,7 +571,13 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 				{
 					case 16:
 						out16 = &((int16_t *)sampleBuffer)[channelIndex];
+						
+						printf("Channels, Samples, Mix Bits, Mix Res: %d, %d, %d, %d\n", numChannels, numSamples, mixBits, mixRes);
+						
 						unmix16( mMixBufferU, mMixBufferV, out16, numChannels, numSamples, mixBits, mixRes );
+						
+						printf("Output: %d, %d, %d...\n", out16[0], out16[1], out16[2]);
+						
 						break;
 					case 20:
 						out20 = (uint8_t *)sampleBuffer + (channelIndex * 3);
@@ -583,6 +627,9 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 			{
 				// frame end, all done so byte align the frame and check for overruns
 				BitBufferByteAlign( bits, false );
+				
+                printf("End of Frame: %d\n", bits->cur - (bits->end - bits->byteSize));
+				
 				//Assert( bits->cur == bits->end );
 				goto Exit;
 			}
@@ -591,8 +638,11 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 #if ! DEBUG
 		// if we've decoded all of our channels, bail (but not in debug b/c we want to know if we're seeing bad bits)
 		// - this also protects us if the config does not match the bitstream or crap data bits follow the audio bits
-		if ( channelIndex >= numChannels )
+		if ( channelIndex >= numChannels ) {
+		    printf("Channel Index is high: %d\n", bits->cur - (bits->end - bits->byteSize));
+		    
 			break;
+		}
 #endif
 	}
 
@@ -625,6 +675,8 @@ NoMoreChannels:
 	}
 
 Exit:
+    printf("End of Decode Iteration\n\n");
+
 	return status;
 }
 

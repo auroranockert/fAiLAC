@@ -29,6 +29,9 @@
 #include "matrixlib.h"
 #include "ALACAudioTypes.h"
 
+#include "stdio.h"
+#include "stdlib.h"
+
 // up to 24-bit "offset" macros for the individual bytes of a 20/24-bit word
 #if TARGET_RT_BIG_ENDIAN
 	#define LBYTE	2
@@ -59,11 +62,16 @@
 
 void unmix16( int32_t * u, int32_t * v, int16_t * out, uint32_t stride, int32_t numSamples, int32_t mixbits, int32_t mixres )
 {
+    printf("Stride, Samples, Mix Bits, Mix Res: %d, %d, %d, %d\n", stride, numSamples, mixbits, mixres);
+    printf("U, V: %d, %d, %d... %d, %d, %d...\n", u[0], u[1], u[2], v[0], v[1], v[2]);
+	
 	int16_t *	op = out;
 	int32_t 		j;
 
 	if ( mixres != 0 )
 	{
+	    printf("Outputting Matrixed Stereo\n");
+	
 		/* matrixed stereo */
 		for ( j = 0; j < numSamples; j++ )
 		{
@@ -79,6 +87,7 @@ void unmix16( int32_t * u, int32_t * v, int16_t * out, uint32_t stride, int32_t 
 	}
 	else
 	{
+		printf("Outputting Separated Stereo\n");
 		/* Conventional separated stereo. */
 		for ( j = 0; j < numSamples; j++ )
 		{
@@ -87,6 +96,8 @@ void unmix16( int32_t * u, int32_t * v, int16_t * out, uint32_t stride, int32_t 
 			op += stride;
 		}
 	}
+	
+	printf("Offset: %d\n", op - out);
 }
 
 // 20-bit routines

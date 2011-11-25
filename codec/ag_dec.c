@@ -283,6 +283,9 @@ int32_t dyn_decomp( AGParamRecPtr params, BitBuffer * bitstream, int32_t * pc, i
     uint32_t	wb_local = params->wb;
     int32_t				status;
 
+    printf("\tPC: %d, %d, %d\n", pc[0], pc[1], pc[2]);
+    printf("\tSamples, Max Size: %d, %d\n", numSamples, maxSize);
+
 	RequireAction( (bitstream != nil) && (pc != nil) && (outNumBits != nil), return kALAC_ParamError; );
 	*outNumBits = 0;
 
@@ -297,7 +300,6 @@ int32_t dyn_decomp( AGParamRecPtr params, BitBuffer * bitstream, int32_t * pc, i
     c = 0;
 	status = ALAC_noErr;
 	
-    printf("max: %u\n", maxSize);
 
     while (c < numSamples)
     {
@@ -351,8 +353,6 @@ int32_t dyn_decomp( AGParamRecPtr params, BitBuffer * bitstream, int32_t * pc, i
                 ++c;                    
             }
             
-            printf("%u\n", c);// exit(0);
-
             if(n >= 65535)
             	zmode = 0;
 
@@ -364,8 +364,6 @@ Exit:
 	*outNumBits = (bitPos - startPos);
 	BitBufferAdvance( bitstream, *outNumBits );
 	RequireAction( bitstream->cur <= bitstream->end, status = kALAC_ParamError; );
-    
-    printf("%d, %d, %d\n", bitPos, startPos, bitPos - startPos);
-    
+        
     return status;
 }
