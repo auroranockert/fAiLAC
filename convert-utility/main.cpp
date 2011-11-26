@@ -657,8 +657,16 @@ int32_t DecodeALAC(FILE * inputFile, FILE * outputFile, AudioFormatDescription t
     fseek(inputFile, inputDataPos, SEEK_SET);
     inputDataPos += theInputPacketBytes;
     
+    int times = 0;
+    
     while ((theInputPacketBytes > 0) && ((size_t)theInputPacketBytes == fread(theReadBuffer, 1, theInputPacketBytes, inputFile)))
     {
+        if (++times == 200) {
+            exit(1);
+        }
+        
+        printf("Packet: %d\n", times);
+        
 #if VERBOSE
         printf ("Read %i bytes\n", theInputPacketBytes);
 #endif

@@ -227,7 +227,7 @@ static inline int32_t dyn_get_32bit( uint8_t * in, uint32_t * bitPos, int32_t m,
 	
 	streamlong = read32bit( in + (tempbits >> 3) );
 	streamlong <<= (tempbits & 7);
-
+	
 	/* find the number of bits in the prefix */ 
 	{
 		uint32_t notI = ~streamlong;
@@ -256,7 +256,7 @@ static inline int32_t dyn_get_32bit( uint8_t * in, uint32_t * bitPos, int32_t m,
 			tempbits += k;
 			tempbits -= 1;
 			result = result*m;
-			
+
 			if(v>=2)
 			{
 				result += (v-1);
@@ -312,8 +312,6 @@ int32_t dyn_decomp( AGParamRecPtr params, BitBuffer * bitstream, int32_t * pc, i
         k = arithmin(k, kb_local);
         m = (1<<k)-1;
         
-        //printf("%d, %d\n", m, k);
-        
 		n = dyn_get_32bit( in, &bitPos, m, k, maxSize );
 
         // least significant bit is sign bit
@@ -339,6 +337,8 @@ int32_t dyn_decomp( AGParamRecPtr params, BitBuffer * bitstream, int32_t * pc, i
         
         if (((mb << MMULSHIFT) < QB) && (c < numSamples))
         {
+            printf("\t\tRecursive", n);
+
             zmode = 1;
             k = lead(mb) - BITOFF+((mb+MOFF)>>MDENSHIFT);
             mz = ((1<<k)-1) & wb_local;
@@ -359,11 +359,11 @@ int32_t dyn_decomp( AGParamRecPtr params, BitBuffer * bitstream, int32_t * pc, i
             mb = 0;
         }
     }
-
+    
 Exit:
 	*outNumBits = (bitPos - startPos);
 	BitBufferAdvance( bitstream, *outNumBits );
 	RequireAction( bitstream->cur <= bitstream->end, status = kALAC_ParamError; );
-        
+    
     return status;
 }

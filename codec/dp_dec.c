@@ -29,6 +29,8 @@
 
 #include "dplib.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #if __GNUC__
 #define ALWAYS_INLINE		__attribute__((always_inline))
@@ -64,6 +66,10 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 	int32_t				denhalf = 1<<(denshift-1);
 
 	out[0] = pc1[0];
+	
+	printf("\tChanshift, Denhalf, Active: %d, %d, %d\n", chanshift, denhalf, numactive);
+	printf("\tPC1: %d, %d, %d\n", pc1[0], pc1[1], pc1[2]);
+	
 	if ( numactive == 0 )
 	{
 		// just copy if numactive == 0 (but don't bother if in/out pointers the same)
@@ -378,4 +384,6 @@ void unpc_block( int32_t * pc1, int32_t * out, int32_t num, int16_t * coefs, int
 			}
 		}
 	}
+	
+	printf("\tOutput: %d, %d, %d\n", out[0], out[1], out[2]);
 }

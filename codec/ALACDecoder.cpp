@@ -473,11 +473,14 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 					}
 
 					printf("Bytes Shifted: %d\n", bytesShifted);
-
+                    
+                    printf("AG: Left\n");
 					// decompress and run predictor for "left" channel
 					set_ag_params( &agParams, mConfig.mb, (pb * pbFactorU) / 4, mConfig.kb, numSamples, numSamples, mConfig.maxRun );
 					status = dyn_decomp( &agParams, bits, mPredictor, numSamples, chanBits, &bits1 );
 					RequireNoErr( status, goto Exit; );
+
+				    printf("Mode U: %d\n", modeU);
 
 					if ( modeU == 0 )
 					{
@@ -489,11 +492,15 @@ int32_t ALACDecoder::Decode( BitBuffer * bits, uint8_t * sampleBuffer, uint32_t 
 						unpc_block( mPredictor, mPredictor, numSamples, nil, 31, chanBits, 0 );
 						unpc_block( mPredictor, mMixBufferU, numSamples, &coefsU[0], numU, chanBits, denShiftU );
 					}
-
+                    
+                    printf("AG: Right\n");
+                    
 					// decompress and run predictor for "right" channel
 					set_ag_params( &agParams, mConfig.mb, (pb * pbFactorV) / 4, mConfig.kb, numSamples, numSamples, mConfig.maxRun );
 					status = dyn_decomp( &agParams, bits, mPredictor, numSamples, chanBits, &bits2 );
 					RequireNoErr( status, goto Exit; );
+
+				    printf("Mode V: %d\n", modeV);
 
 					if ( modeV == 0 )
 					{
